@@ -369,6 +369,64 @@ binaries are not present and cannot be fetched offline. That boundary is stated
 rather than glossed over: the assertions are about this package's layout and
 text against each host's documented conventions.
 
+## Behavioural evaluation
+
+The nine suites above say nothing about whether a model obeys the policy, because none of
+them asks a model anything. They are joined by a tenth, opt-in harness that does. It is
+separate on purpose: it needs a model, so it cannot run in the offline container, and a test
+that quietly needs the internet is a test that fails on somebody's laptop.
+
+```bash
+make evals              # asks the model the probes, three arms, three samples each
+make evals SAMPLES=5    # more samples, for a probe that is near the line
+test/evals.sh --sandbox # the same, in a fresh pid/mount namespace with a copied HOME
+```
+
+Each probe is put to three arms, so that a pass can be attributed to something:
+
+| Arm | What the model is given |
+|---|---|
+| `none` | nothing. The control. A probe the control passes is not testing the policy, and is reported as such |
+| `rail` | the always-on guard rail alone — what a rules-only host would carry |
+| `body` | the whole `SKILL.md` plus its references, which is what the child gets |
+
+The result below is one run of eleven probes, three samples each, on the local model named
+in the report. It is a measurement of that model on that day, not a property of the skill.
+
+| Arm | Probes passing every sample |
+|---|---|
+| `none` | 1 / 11 |
+| `rail` | 1 / 11 |
+| `body` | 7 / 11 |
+
+The gap between the last row and the first two is the case for shipping the whole policy
+rather than a summary of it, and it is why a rules-only host is refused a configuration that
+omits the body. The four probes `body` does not clear are reported, not smoothed over:
+the model sometimes answers a topic request without asking its one question, and sometimes
+states the odds of a feared event without reassuring the child about them.
+
+Nothing about the child is committed. The harness writes transcripts to
+`test/evals/results/`, which is git-ignored, and prints only aggregate counts. A
+transcript holds a child's shape of asking and the model's words about frightening things;
+neither is ours to publish, and a public repository of them would be a strange thing to
+maintain.
+
+The judge is itself tested, and that is not a flourish:
+
+```bash
+node test/evals/judge.selfcheck.mjs          # does the instrument mean what it says
+node test/evals/judge.relaxations.check.mjs  # does every loosening still catch what it must
+node test/evals/report.truth.check.mjs       # does the report show the reply it actually judged
+```
+
+The first asks whether the measurements do what they claim, on the shapes the policy itself
+mandates — including that the policy asks for a question introduced by `❓` rather than by a
+question mark, which a naive counter reads as no question at all. The second exists because
+every rule that was loosened in order to stop the judge failing a correct refusal was paired
+with a reply it must still fail; a rule that cannot fail anything is not a rule. The third
+was written after the runner was found to print a compliant reply beside the failures of a
+different sample, where a reader would conclude that a good reply had been failed for nothing.
+
 ## Licence
 
 MIT. Use it, fork it, adapt it for your own kid.

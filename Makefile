@@ -58,6 +58,13 @@ docker-harness:
 adapters:
 	@node $(ROOT)/adapters/build.mjs --harness all --scope both --out build
 
+evals:
+	@./test/evals.sh --sandbox --samples $(if $(SAMPLES),$(SAMPLES),3)
+
+evals-judge:
+	@node test/evals/judge.selfcheck.mjs
+	@node test/evals/judge.relaxations.check.mjs
+	@node test/evals/report.truth.check.mjs
 verify-adapters:
 	@node $(ROOT)/adapters/build.mjs --verify all --out build
 
