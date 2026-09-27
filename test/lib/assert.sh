@@ -45,6 +45,34 @@ kid_skip() {
 	KID_ASSERT_SKIPPED=$((${KID_ASSERT_SKIPPED:-0} + 1))
 }
 
+# --- capability probe ------------------------------------------------------
+
+# Can this node build import a .ts file? The answer arrived late and unevenly:
+# 22.6 added the type-stripping transform behind --experimental-strip-types, and
+# later releases turned it on by default. Reading the version number and guessing
+# is wrong: 22.6 satisfies a >= 22 test yet cannot import .ts without the flag.
+# So the runtime is asked directly. Prints the flag required, which may be empty.
+kid_ts_flag() { # -> the node flag needed to import .ts, or empty; false if none works
+	local dir flag out
+	dir="$(mktemp -d -t kidts.XXXXXX)" || return 1
+	printf 'export default function (n: number): number { return n + 1; }\n' > "$dir/probe.ts"
+	printf 'const m = await import(new URL("./probe.ts", import.meta.url));\nprocess.stdout.write(String(m.default(1)));\n' > "$dir/probe.mjs"
+	for flag in '' '--experimental-strip-types'; do
+		if [[ -n "$flag" ]]; then
+			out="$(node "$flag" "$dir/probe.mjs" 2>/dev/null)" || out=""
+		else
+			out="$(node "$dir/probe.mjs" 2>/dev/null)" || out=""
+		fi
+		if [[ "$out" == "2" ]]; then
+			rm -rf -- "$dir"
+			printf '%s\n' "$flag"
+			return 0
+		fi
+	done
+	rm -rf -- "$dir"
+	return 1
+}
+
 # --- file / content -------------------------------------------------------
 
 assert_file() {
