@@ -1,0 +1,6 @@
+dist/
+tmp/
+*.log
+*.old.*
+skills/kid-explorer.old.*/
+node_modules/
