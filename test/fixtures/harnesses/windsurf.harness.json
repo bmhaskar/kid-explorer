@@ -1,0 +1,24 @@
+// A host added by a family, not by this repository. It is here so that the
+// suite can prove the open registry really is open: the same build, the same
+// checks, and the same install path must accept it without any patch to the
+// built-in table. Windsurf is a rules host with no skill file to load, so it
+// needs the body inlined exactly as Cursor does.
+{
+	"label": "Windsurf",
+	"kind": "rules",
+	"rulesDir": ".windsurf/rules",
+	"rulesExt": "mdc",
+	"rulesName": "kid-explorer",
+	"rulesFrontmatter": {
+		"description": "Child-safety guard rails for kid-explorer conversations.",
+		"globs": "",
+		"alwaysApply": true
+	},
+	"allowedTools": [],
+	"deniedTools": [],
+	"contextFile": "AGENTS.md",
+	"inlineBody": true,
+	"slashCommand": "@kid-explorer",
+	"note": "Added via the open registry, from test/fixtures/harnesses.",
+	"source": "Windsurf docs, rules and memories"
+}

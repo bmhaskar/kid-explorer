@@ -34,6 +34,11 @@ branch="main"
 from_url=""
 with_ext=1
 offline=0
+# which host to install for, and where the project copy should land
+harness="pi"
+all_harnesses=0
+project_dir="$PWD"
+list_harnesses=0
 
 cleanup_dirs=()
 cleanup() {
@@ -64,6 +69,12 @@ usage() {
 	  ./install.sh --repo O/N      upstream (default bmhaskar/kid-explorer)
 	  ./install.sh --branch NAME   branch to fetch (default main)
 	  ./install.sh --offline       refuse any network use
+	  ./install.sh --harness NAME  install for one host (pi, claude, codex,
+	                               gemini, opencode, devin, cursor, generic;
+	                               or a name from adapters/harnesses/)
+	  ./install.sh --all-harnesses install for every known host
+	  ./install.sh --project DIR   where the project copy goes (default: $PWD)
+	  ./install.sh --list-harnesses  list the hosts this build knows
 
 	  Piped form, for a clean machine:
 	  curl -fsSL https://raw.githubusercontent.com/bmhaskar/kid-explorer/main/install.sh | bash
@@ -80,11 +91,29 @@ while (($#)); do
 		--branch) branch="${2:-}"; shift 2 ;;
 		--branch=*) branch="${1#*=}"; shift ;;
 		--offline) offline=1; shift ;;
+		--harness) harness="${2:-}"; shift 2 ;;
+		--harness=*) harness="${1#*=}"; shift ;;
+		--all-harnesses) all_harnesses=1; shift ;;
+		--project) project_dir="${2:-}"; shift 2 ;;
+		--project=*) project_dir="${1#*=}"; shift ;;
+		--list-harnesses) list_harnesses=1; shift ;;
 		-h|--help) usage; exit 0 ;;
 		--) shift; break ;;
 		*) printf 'unknown option: %s\n' "$1" >&2; exit 2 ;;
 	esac
 done
+
+# --- what hosts does this build know? ------------------------------------
+# Read from the registry, so that this list and the thing that installs cannot
+# ever disagree. A table kept by hand here would be a second source of truth,
+# and the first thing to go stale when a host changes its conventions.
+if (( list_harnesses )); then
+	if [[ ! -f "$script_dir/adapters/build.mjs" ]]; then
+		printf 'this checkout has no adapters/ to read the host list from\n' >&2
+		exit 1
+	fi
+	exec node "$script_dir/adapters/build.mjs" --list
+fi
 
 # --- the package we are about to install must be complete -------------------
 required=(SKILL.md
@@ -170,6 +199,70 @@ if ! validate "$src"; then
 fi
 
 # --- install -----------------------------------------------------------------
+# Any host other than pi is produced by the generator, never by a second copy
+# of these twelve lines. The generator owns the layout; this script only moves
+# the finished files into place, so that the paths cannot drift apart from the
+# ones the test suite checks.
+if [[ "$harness" != "pi" ]] || (( all_harnesses )); then
+	if ! command -v node >/dev/null 2>&1; then
+		printf 'installing for another host needs node, which is not on PATH\n' >&2
+		printf 'install the pi skill with ./install.sh --skill, or install node\n' >&2
+		exit 3
+	fi
+	build="$script_dir/adapters/build.mjs"
+	if [[ ! -f "$build" ]]; then
+		printf 'this checkout has no adapters/build.mjs, so it cannot build for %s\n' "$harness" >&2
+		printf 'use a full checkout, or install the pi skill with ./install.sh --skill\n' >&2
+		exit 3
+	fi
+
+	want="$harness"
+	(( all_harnesses )) && want=all
+
+	printf 'building      : %s\n' "$want"
+
+	# The generator writes straight into the destination, in place, rather than into
+	# a staging tree that is then copied over. Several hosts name the same context
+	# file — codex, generic, opencode, devin and cursor all use AGENTS.md — and
+	# copying one over another deletes whatever the others put there. Written in
+	# place, each host reads the file that is already there, replaces only its own
+	# marked block, and leaves the rest alone; that is also what makes running this
+	# installer a second time a safe thing to do.
+	if [[ -z "$project_dir" || "$project_dir" == "/" ]]; then
+		printf 'a project directory is needed and %s is not one\n' "${project_dir:-unset}" >&2
+		printf 'pass --project DIR, or run it from inside the project.\n' >&2
+		exit 2
+	fi
+	mkdir -p -- "$project_dir" "$HOME"
+
+	for pair in "project:$project_dir" "home:$HOME"; do
+		sc="${pair%%:*}"; base="${pair#*:}"
+		if ! node "$build" --harness "$want" --scope "$sc" --in-place --out "$base"; then
+			printf 'the adapter build failed for the %s scope; nothing was installed\n' "$sc" >&2
+			exit 1
+		fi
+		if ! node "$build" --verify "$want" --scope "$sc" --in-place --out "$base"; then
+			printf 'the %s adapters did not pass their own checks\n' "$sc" >&2
+			printf 'nothing was installed; the tree above is what the last run left.\n' >&2
+			exit 1
+		fi
+	done
+	printf 'project dir   : %s\n' "$project_dir"
+	printf 'home dir      : %s\n' "$HOME"
+
+	if (( with_ext )); then
+		mkdir -p -- "$pi_home/extensions"
+		cp -- "$src/extensions/kid-explorer-autostart.ts" \
+			"$pi_home/extensions/kid-explorer-autostart.ts"
+		printf 'extension     : %s/kid-explorer-autostart.ts\n' "$pi_home/extensions"
+	fi
+
+	printf '\n✓ installed for: %s\n' "$want"
+	printf '  the guard rails are in the host rules file; the skill body is in the\n'
+	printf '  host skills directory. Both were generated, so re-running is safe.\n'
+	exit 0
+fi
+
 skill_dest="$pi_home/skills/kid-explorer"
 
 printf 'source        : %s\n' "$src"

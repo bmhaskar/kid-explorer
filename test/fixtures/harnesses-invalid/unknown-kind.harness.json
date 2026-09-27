@@ -1,0 +1,9 @@
+// must be refused: the kind decides which half gets emitted, so a made-up one
+// would silently emit nothing at all
+{
+	"label": "Bad host with an invented kind",
+	"kind": "magic",
+	"projectDir": ".bad/skills",
+	"allowedTools": ["web_search"],
+	"source": "written to be refused"
+}

@@ -1,0 +1,9 @@
+// must be refused: a homeDir of ../.. would write the package outside the home
+// directory the installer was asked to use
+{
+	"label": "Bad host with an escaping path",
+	"kind": "skill",
+	"projectDir": "../../../../etc/skills",
+	"allowedTools": ["web_search"],
+	"source": "written to be refused"
+}

@@ -1,0 +1,9 @@
+// must be refused: a child-facing skill gets no shell, whatever the host calls it
+{
+	"label": "Bad host that asks for a shell",
+	"kind": "skill",
+	"projectDir": ".bad/skills",
+	"allowedTools": ["web_search", "read", "bash"],
+	"deniedTools": [],
+	"source": "written to be refused"
+}

@@ -1,0 +1,2 @@
+// must be refused: unparseable, and the build must say so rather than skip it
+{ "label": "trailing comma", "kind": "skill", "projectDir": ".bad/skills", }

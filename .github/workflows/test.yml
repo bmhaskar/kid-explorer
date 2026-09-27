@@ -52,3 +52,25 @@ jobs:
 
       - name: build and run with --network none
         run: ./test/docker-test.sh --per-suite --repeat 2
+
+  # The host suite proves what the generator emits. This proves what the
+  # installer leaves on a machine, in the directories each host actually
+  # reads, from a home directory that has never seen the skill and with no
+  # network. One container per host, so that a host which fails cannot hide
+  # behind a host which passed, and so that no install can see another's
+  # leftovers.
+  harnesses:
+    name: installs for every host, one container each
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: every host, offline, unprivileged, installed twice
+        run: ./test/docker-harness.sh
+
+      # the registry is open, so the shipped example of a family-added host
+      # is installed and verified by the same code path as a built-in
+      - name: a host added outside this repository
+        env:
+          KID_EXPLORER_HARNESS_DIR: ${{ github.workspace }}/test/fixtures/harnesses
+        run: ./test/docker-harness.sh --harness windsurf

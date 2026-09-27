@@ -5,11 +5,16 @@
 #   make docker        build and run the suite in a container, offline
 #   make docker-live   same, plus install pi and run the live load test
 #   make docker-shell  a shell inside the test image
+#   make harnesses     list the hosts this build can install for
+#   make docker-harness  install for every host, each in its own container
+#   make adapters      generate the per-host adapters into build/
+#   make verify-adapters  re-check the generated adapters in build/
 #   make lint          quick structural checks only
 #   make install       install into $$PI_HOME (default ~/.pi/agent)
 #   make dist          write a tarball to dist/
 #
-.PHONY: test test-live test-strict docker docker-live docker-shell lint install dist help
+.PHONY: test test-live test-strict docker docker-live docker-shell lint install dist help \
+         harnesses docker-harness adapters verify-adapters
 
 SHELL := /bin/bash
 ROOT  := $(abspath .)
@@ -41,6 +46,20 @@ docker-isolated:
 
 docker-shell:
 	@$(ROOT)/test/docker-test.sh --shell
+
+# the host list is read from the registry, so that these targets and the
+# installer cannot come to disagree about which hosts exist
+harnesses:
+	@node $(ROOT)/adapters/build.mjs --list
+
+docker-harness:
+	@$(ROOT)/test/docker-harness.sh
+
+adapters:
+	@node $(ROOT)/adapters/build.mjs --harness all --scope both --out build
+
+verify-adapters:
+	@node $(ROOT)/adapters/build.mjs --verify all --out build
 
 install:
 	@PI_HOME="$(PI_HOME)" $(ROOT)/install.sh

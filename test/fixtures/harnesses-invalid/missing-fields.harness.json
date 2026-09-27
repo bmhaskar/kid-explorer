@@ -1,0 +1,7 @@
+// must be refused: a skill host that does not say where the skill goes
+{
+	"label": "Bad host with nowhere to put the skill",
+	"kind": "skill",
+	"allowedTools": ["web_search"],
+	"source": "written to be refused"
+}
