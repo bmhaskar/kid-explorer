@@ -1,12 +1,18 @@
-# Kid Explorer — a pi skill for a curious 12-year-old
+# Kid Explorer — a conversation skill for a curious 12-year-old
 
-A conversation skill for [pi](https://github.com/earendil-works/pi), written for a
-bright 12-year-old on the autism spectrum with ADHD who loves history, geography,
-animals, and botany.
+A conversation skill for a bright 12-year-old on the autism spectrum with ADHD
+who loves history, geography, animals, and botany. Written for
+[pi](https://github.com/earendil-works/pi), and it installs the same policy
+onto Claude Code, Codex, Gemini CLI, OpenCode, Devin, Cursor, and anything else
+that reads the [Agent Skills](https://agentskills.io) layout.
 
 It turns "what shall we talk about?" into a small card game, and puts a firm,
 quiet **content lens** over everything the agent says — including anything it
 pulls off the web.
+
+The policy is written **once**, in `SKILL.md` and `references/`. Everything a
+host needs is generated from it, so there is one text to review rather than one
+per agent, and the test suite proves the bytes match.
 
 ## What it does
 
@@ -41,10 +47,20 @@ pulls off the web.
 curl -fsSL https://raw.githubusercontent.com/bmhaskar/kid-explorer/main/install.sh | bash
 ```
 
+That installs for **pi**. For another agent, pass the host and the project:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bmhaskar/kid-explorer/main/install.sh \
+  | bash -s -- --harness claude --project ~/my-project
+```
+
 The installer is self-fetching: run it from anywhere, even piped with no
 checkout present, and it pulls the upstream archive and installs from that.
 It verifies the package is complete before writing anything, refuses loudly
 if it is not, and leaves the previous install as a timestamped backup.
+
+Installing for a host other than pi needs `node` on `PATH`, because the
+adapters are generated rather than shipped as copies.
 
 ### From a clone
 
@@ -57,13 +73,9 @@ cd kid-explorer
 
 ### For another agent
 
-The same policy, installed for the host you actually use. The adapters are
-generated from one registry, and the body is never rewritten — only the
-frontmatter is edited — so there is one text to review rather than one per host.
-
 ```bash
 ./install.sh --list-harnesses                       # what this build knows
-./install.sh --harness claude --project ~/my-project
+./install.sh --harness cursor --project ~/my-project
 ./install.sh --all-harnesses --project ~/my-project
 ```
 
@@ -75,49 +87,35 @@ node adapters/build.mjs --harness myhost --kind rules \
      --rules-dir .myhost/rules --rules-ext mdc --context-file AGENTS.md --out build
 ```
 
-…or keep it, by dropping `myhost.harness.json` in `adapters/harnesses/`. It is
+A `rules` host needs `--rules-dir` and `--rules-ext`; a `skill` host needs
+`--kind skill` and `--project-dir`. Both take the optional flags below, and the
+rule's frontmatter is filled in for you when you do not name it — a rail the
+agent may choose to ignore is not a rail, so it always applies unless you say
+otherwise.
+
+| Option | Meaning |
+|---|---|
+| `--kind skill\|rules\|both` | which half the host can read |
+| `--rules-dir DIR` `--rules-ext EXT` | where the rule goes, and with which extension (some hosts ignore `.md` there) |
+| `--rules-name NAME` | file name, default `kid-explorer` |
+| `--rules-description TEXT` | what the rule is, which is what makes a host surface it |
+| `--rules-always-apply true\|false` | default `true` |
+| `--project-dir DIR` `--home-dir DIR` | where the skill tree goes, for a skill host |
+| `--allow-tools a,b` `--deny-tools x,y` | the tool surface, in that host's names |
+| `--context-file FILE.md` | the always-on rules file, or none |
+| `--scope project\|home\|both` | which half to emit |
+| `--in-place` | write into the real tree so hosts sharing a context file merge |
+
+…or keep it, by dropping `myhost.harness.json` in `adapters/harnesses/`, in
+`$KID_EXPLORER_HARNESS_DIR`, or in `~/.config/kid-explorer/harnesses/`. It is
 then validated, built, installed, and tested by the same code path as the
-built-ins. See [`adapters/harnesses/README.md`](adapters/harnesses/README.md).
-
-## Which agents it runs on
-
-| Agent | Shape | Where it goes | Notes |
-|---|---|---|---|
-| **pi** | skills | `.pi/agent/skills/` | also reads `.agents/skills/` |
-| **Claude Code** | skills | `.claude/skills/`, `~/.claude/skills/` | `allowed-tools` only pre-approves, so the harmful tools are removed by `disallowed-tools` |
-| **Codex** | skills | `.agents/skills/` | repo scope; the tool surface goes in `agents/openai.yaml`, which is emitted |
-| **Gemini CLI** | skills | `.gemini/skills/` | honours the `.agents/skills/` alias too |
-| **OpenCode** | skills | `.opencode/skills/`, `~/.config/opencode/skills/` | auto-loads the `.claude/skills` and `.agents/skills` compatibility locations |
-| **Devin CLI** | skills | `.devin/skills/`, `~/.config/devin/skills/` | rules via `AGENTS.md`, with `AGENTS.local.md` for personal overrides |
-| **Cursor** | rules | `.cursor/rules/*.mdc` | has no skill to load, so the whole policy is inlined into `AGENTS.md` |
-| **anything else** | — | `.agents/skills/` | the portable location; `--harness generic` |
-
-Two things are true of every row, and they are the reason the table exists:
-
-1. **The body is one text.** The suite compares the bytes of every generated
-   body against `SKILL.md`, for every host, and fails on one differing byte.
-   N hand-kept copies of a safety policy is N chances to drift, and drift in a
-   safety policy is silent.
-2. **The guard rails load before the skill does.** A host reads a skill body
-   when it decides the task is relevant, which is the wrong moment for a
-   child-safety rule: the first reply of a session can arrive before the body
-   is ever opened. So the non-negotiables are also written to the host's
-   always-on context file, and for a rules-only host the complete policy is
-   inlined there, because it has nothing else to read.
-
-No host is ever handed a shell, a file write, or a patch, whatever it calls
-its tools. That list is checked against every generated frontmatter, and a
-registry entry that asks for one is refused at load.
-
-Conventions move: these hosts rename their directories and their tools between
-releases. Where each fact came from is recorded beside the entry in
-`adapters/harnesses.mjs`, and an entry can be overridden locally without
-patching this repository.
+built-ins — including the one shipped here as an example, `windsurf`. The
+contract is in [`adapters/harnesses/README.md`](adapters/harnesses/README.md).
 
 ### By hand
 
 ```
-~/.pi/agent/skills/kid-explorer/                 the skill
+~/.pi/agent/skills/kid-explorer/                  the skill
 ~/.pi/agent/extensions/kid-explorer-autostart.ts  optional, auto-deals the menu
 ```
 
@@ -128,6 +126,10 @@ Then restart pi, or run `/reload` inside a running session.
 | Flag | Effect |
 |---|---|
 | `--skill`, `--no-ext` | Install the skill only, without the extension. |
+| `--harness NAME` | Install for one host: `pi`, `claude`, `codex`, `gemini`, `opencode`, `devin`, `cursor`, `generic`, or a name you added. |
+| `--all-harnesses` | Install for every host the registry knows. |
+| `--project DIR` | Where the project copy goes. Default `$PWD`. |
+| `--list-harnesses` | Print the hosts this build knows, read from the registry. |
 | `--from URL` | Install a specific archive tarball instead of the default upstream. |
 | `--repo OWNER/NAME` | Upstream to fetch from (default `bmhaskar/kid-explorer`). |
 | `--branch NAME` | Branch to fetch (default `main`). |
@@ -140,7 +142,51 @@ Then restart pi, or run `/reload` inside a running session.
 PI_HOME=/tmp/trial ./install.sh && find /tmp/trial -type f
 ```
 
+## Which agents it runs on
+
+| Agent | Shape | Where it goes | How to call it | Notes |
+|---|---|---|---|---|
+| **pi** | skills | `.pi/agent/skills/` | `/skill:kid-explorer` | also reads `.agents/skills/` |
+| **Claude Code** | skills | `.claude/skills/`, `~/.claude/skills/` | `/kid-explorer` | `allowed-tools` only pre-approves, so the harmful tools are removed by `disallowed-tools` |
+| **Codex** | skills | `.agents/skills/` | `$kid-explorer`, or `/skills` | repo scope; the tool surface goes in `agents/openai.yaml`, which is emitted |
+| **Gemini CLI** | skills | `.gemini/skills/` | `/kid-explorer` | honours the `.agents/skills/` alias too |
+| **OpenCode** | skills | `.opencode/skills/`, `~/.config/opencode/skills/` | `/kid-explorer` | auto-loads the `.claude/skills` and `.agents/skills` compatibility locations |
+| **Devin CLI** | skills | `.devin/skills/`, `~/.config/devin/skills/` | `/kid-explorer` | rules via `AGENTS.md`, with `AGENTS.local.md` for personal overrides |
+| **Cursor** | rules | `.cursor/rules/*.mdc` | `@kid-explorer` | has no skill to load, so the whole policy is inlined into `AGENTS.md` |
+| **anything else** | — | `.agents/skills/` | `/kid-explorer` | the portable location; `--harness generic` |
+
+Two things are true of every row, and they are the reason the table exists:
+
+1. **The body is one text.** The suite compares the bytes of every generated
+   body against `SKILL.md`, for every host, and fails on one differing byte.
+   N hand-kept copies of a safety policy is N chances to drift, and drift in a
+   safety policy is silent.
+2. **The guard rails load before the skill does.** A host reads a skill body
+   when it decides the task is relevant, which is the wrong moment for a
+   child-safety rule: the first reply of a session can arrive before the body
+   is ever opened. So the non-negotiables are also written to the host's
+   always-on context file, and for a rules-only host such as Cursor the
+   complete policy is inlined there, because it has nothing else to read.
+
+   That last part is not a setting you can get wrong. A `rules` host has no
+   file to reach for later, so the eight-line summary would otherwise be the
+   whole of what the model ever sees — and eight lines is not a policy. The
+   kind decides it, and an entry that asks for `inlineBody: false` on a rules
+   host is refused at load.
+
+No host is ever handed a shell, a file write, or a patch, whatever it calls
+its tools. That list is checked against every generated frontmatter, and a
+registry entry that asks for one is refused at load.
+
+Conventions move: these hosts rename their directories and their tools between
+releases. Where each fact came from is recorded beside the entry in
+`adapters/harnesses.mjs`, and an entry can be overridden locally without
+patching this repository — which is the point of the registry being open.
+
 ## Turn the auto-menu on
+
+*This part is pi-only.* The other hosts have no extension mechanism this
+package uses, so they get the guard rails and the skill and nothing else.
 
 The extension is **off by default**, so the same files are safe on a parent's own
 machine. Enable it only in the child's shell:
@@ -161,8 +207,13 @@ Without it, he starts a game by typing `/skill:kid-explorer` or just "let's play
 | `/wild` | One surprising true fact from any subject. |
 | `/skill:kid-explorer` | Force-load the skill (useful if the model did not pick it). |
 
+The last one is how pi names it. Other hosts spell it as in the table above —
+`/kid-explorer` on Claude Code, Gemini CLI, OpenCode, Devin and the generic
+install, `$kid-explorer` on Codex, `@kid-explorer` on Cursor.
+
 Inside the chat he can also say: `start`, `menu`, `next`, `wild`, `more`,
-`deeper`, `break`, or any topic at all.
+`deeper`, `break`, or any topic at all. Those words work in every host, because
+they are in the skill body and not in a command file.
 
 ## Layout
 
@@ -170,38 +221,44 @@ Inside the chat he can also say: `start`, `menu`, `next`, `wild`, `more`,
 kid-explorer/
 ├── SKILL.md                           core rules, the game, the turn format
 ├── references/
-│   ├── emotional-safety.md             the eight guarantees, what breaks the space, confidentiality
-│   ├── content-policy.md              the age gate: allow list, deny list, escalation
-│   ├── reframing.md                   Time Bridge table — war & disaster → constructive
-│   ├── topic-bank.md                  the card deck, 60 cards across 4 suits
-│   ├── situation-corner.md            social-situation coaching + situation bank
-│   ├── comms-style.md                 autism + ADHD style guide, with worked example
-│   └── websearch-lens.md              the seven checks before any web content is shared
-├── extensions/
-│   └── kid-explorer-autostart.ts      optional auto-menu + /quest and /wild
-├── test/
-│   ├── run-all.sh                     the suite runner
-│   ├── docker-test.sh                 build + run hermetically in a container
-│   ├── Dockerfile                     the test image (node base, unprivileged)
-│   ├── lib/assert.sh                  assertion helpers
-│   ├── docker-harness.sh              installs for every host, one container each
-│   ├── harness/extension.harness.mjs  drives the real extension under a stub pi API
-│   ├── harness/legend.check.mjs       verifies the fixed symbol alphabet
-│   ├── harness/harness.check.mjs      asks whether a host would find the installed files
-│   ├── harness/registry.query.mjs     lets the suite read its expectations from the registry
-│   ├── fixtures/harnesses/            an example of a host added from outside
-│   ├── fixtures/harnesses-invalid/    specs written to be refused, one per rule
-│   └── [1-8]0-*.sh                    the eight suites
+│   ├── emotional-safety.md            the eight guarantees, what breaks the space, confidentiality
+│   ├── content-policy.md             the age gate: allow list, deny list, escalation
+│   ├── reframing.md                  Time Bridge table — war & disaster → constructive
+│   ├── topic-bank.md                 the card deck, 60 cards across 4 suits
+│   ├── situation-corner.md           social-situation coaching + situation bank
+│   ├── comms-style.md                autism + ADHD style guide, with worked example
+│   └── websearch-lens.md             the seven checks before any web content is shared
 ├── adapters/
-│   ├── harnesses.mjs                   the registry: one entry per host, with its provenance
-│   ├── registry.mjs                    loads, merges and validates every entry
-│   ├── build.mjs                       the generator, and the verifier
-│   └── harnesses/                      drop a host in here; README.md is the contract
-├── install.sh                         self-fetching installer
-├── .github/workflows/test.yml         ci: node 22/24/26, plus an offline container run
-├── Makefile                           make test | make docker | make dist
-└── LICENSE                            MIT, with a note for grown-ups
+│   ├── harnesses.mjs                 the registry: one entry per host, with its provenance
+│   ├── registry.mjs                  loads, merges and validates every entry
+│   ├── build.mjs                     the generator, and the verifier
+│   └── harnesses/                    drop a host in here; README.md is the contract
+├── extensions/
+│   └── kid-explorer-autostart.ts     optional auto-menu + /quest and /wild (pi only)
+├── test/
+│   ├── run-all.sh                    the suite runner
+│   ├── docker-test.sh                build + run hermetically in a container
+│   ├── docker-harness.sh             installs for every host, one container each
+│   ├── Dockerfile                    the test image (node base, unprivileged)
+│   ├── lib/assert.sh                 assertion helpers
+│   ├── harness/extension.harness.mjs drives the real extension under a stub pi API
+│   ├── harness/legend.check.mjs      verifies the fixed symbol alphabet
+│   ├── harness/harness.check.mjs     asks whether a host would find the installed files
+│   ├── harness/registry.query.mjs    lets the suite read its expectations from the registry
+│   ├── fixtures/harnesses/           an example of a host added from outside
+│   ├── fixtures/harnesses-invalid/   specs written to be refused, one per rule
+│   ├── harness/docs.claims.check.mjs checks the claims this file makes
+│   └── [1-9]0-*.sh                   the nine suites
+├── install.sh                        self-fetching installer
+├── .github/workflows/test.yml        ci: node 22/24/26, an offline container run,
+│                                     and an install per host, one container each
+├── Makefile                          make test | make docker | make docker-harness | make dist
+└── LICENSE                           MIT, with a note for grown-ups
 ```
+
+Nothing under `build/` is kept by hand, and `build/` is git-ignored. A
+generated copy of the safety policy sitting in the repository is a second text
+somebody might edit alone, which is the thing this layout exists to prevent.
 
 ## Parent notes — please read
 
@@ -212,7 +269,9 @@ kid-explorer/
   the machine in a shared room and skim the sessions.
 - The agent can search the web. It is told to inspect every result before sharing
   and to never print a URL or a raw result list. Still: if you want to be certain,
-  run pi with the web tools disabled and it will answer from the model alone.
+  turn the web tools off for the agent — in pi that is done in the tool allowlist,
+  and the skill then answers from the model alone. Every generated adapter also
+  withholds shell, file-write, and patch tools by name.
 - The agent tells the child, plainly, what a grown-up can see, and never promises
   secrecy it cannot keep. It will not quote anything he told it about his feelings,
   family, body, school, or worries, and it writes no line at all rather than one that
@@ -232,11 +291,14 @@ Everything is plain markdown. The three files most worth editing for your child:
 - `references/reframing.md` — add a row for any new fixation that comes along.
 - `references/comms-style.md` — adjust the word budget and the tone to what works.
 
-Run `/reload` in pi after editing.
+Edit the one source. Re-run `make adapters` (or the installer) to push the change
+out to every host; do not edit a generated file, because the next build will
+overwrite it and the suite will report the difference. In pi, run `/reload` after
+editing.
 
 ## Testing
 
-The repo ships a test suite. It is hermetic: no network, no model call, no
+The repo ships a test suite of nine suites. It is hermetic: no network, no model call, no
 credentials, no host state. `node` must be new enough to strip TypeScript
 types natively (>= 22.6).
 
@@ -274,6 +336,7 @@ test/docker-harness.sh --list  # which hosts that would cover
 | `60-fresh-install` | Installs into a throwaway `PI_HOME`, byte-for-byte, from a clean checkout; `--skill` and `--no-ext`; bad options rejected; re-install is idempotent and keeps a backup; the real `~/.pi` is provably untouched; a package without `SKILL.md` is refused. |
 | `70-pi-live` | Optional. Starts pi for real with a bad API key. If the run reaches the provider, startup — including this skill and extension — completed cleanly. It also feeds the loader a deliberately malformed skill and requires a complaint, so the "no load-time error" assertions cannot pass vacuously. |
 | `80-portability` | Every host in the registry: it builds, it lands where the registry promises, its frontmatter stays inside the specification, it is granted no forbidden tool, the clauses survive in the artefact that is supposed to carry them, a second build is byte-identical, blocks neither duplicate nor nest, a host added from outside is accepted, six bad specs are each refused for the right reason, **and two meta-tests confirm the checks can still fail** — one by deleting a safety clause, one by hand-editing a body. |
+| `90-docs` | Everything this file asserts about the program: the flags, the `make` targets, the layout tree, the suite table, the examples. It is the reason the paragraph above can be trusted a month from now. |
 
 The container runs as an unprivileged user with capabilities dropped and no
 new privileges, which is also how the child should run it.

@@ -210,12 +210,42 @@ assert_eq "and it passes the same checks as a built-in" \
 	"$(node "$build" --verify windsurf --out "$scratch/user" >/dev/null 2>&1; echo $?)" "0"
 unset KID_EXPLORER_HARNESS_DIR
 
-# --- 9. an unknown host fails loudly, and says what to do about it -----------
+# --- 9. an unknown host: refused with the reason, or built from the CLI ------
+# An error message is a claim about what the program does. This one recommended
+# options the program had already rejected, because the name was refused before
+# the command line was ever read, and so the one-off build the README documents
+# could not be made to work by any route. Both halves are pinned down: the
+# refusal must explain itself, and the advice must be a command that runs.
 uout_file="$scratch/unknown.txt"
 node "$build" --harness notahost --out "$scratch/unknown" >"$uout_file" 2>&1 || true
-assert_has "$uout_file" "no harness named"
-assert_has "$uout_file" "adapters/harnesses/"
+assert_has "$uout_file" "notahost"
+assert_has "$uout_file" "not in the registry"
+assert_has "$uout_file" "adapters/harnesses/README.md"
 assert_has "$uout_file" "--kind"
+
+# the documented one-off build, run exactly as the README writes it
+oneoff="$scratch/oneoff"
+cli_build() { node "$build" --harness clihost --kind rules \
+	--rules-dir .clihost/rules --rules-ext mdc --context-file AGENTS.md \
+	--out "$oneoff"; }
+cli_verify() { node "$build" --verify clihost --kind rules \
+	--rules-dir .clihost/rules --rules-ext mdc --context-file AGENTS.md \
+	--out "$oneoff"; }
+assert_eq "a rules host builds from the command line alone" "$(cli_build >/dev/null 2>&1; echo $?)" "0"
+assert_file "$oneoff/clihost/.clihost/rules/kid-explorer.mdc"
+assert_file "$oneoff/clihost/AGENTS.md"
+assert_eq "and it passes the same checks as a written entry" "$(cli_verify >/dev/null 2>&1; echo $?)" "0"
+
+# a rules host nobody told about inlining still carries the whole policy,
+# because it has no file to read later; eight lines is not a policy
+assert_has "$oneoff/clihost/AGENTS.md" "A boundary is not a punishment"
+assert_has "$oneoff/clihost/AGENTS.md" "No private data"
+
+# a skill host named on the command line without saying where the skill goes is
+# refused by name, rather than building a host that would find nothing
+sout_file="$scratch/noskill.txt"
+node "$build" --harness skillhost --kind skill --out "$scratch/noskill" >"$sout_file" 2>&1 || true
+assert_has "$sout_file" "--project-dir"
 
 # --- 10. the validator refuses the specs it exists to refuse -----------------
 # A registry anyone can extend is only safe if the checks are real, so each
@@ -228,6 +258,7 @@ declare -A expect=(
 	[missing-fields]='requires a non-empty'
 	[nested-frontmatter]='must be a scalar'
 	[broken-json]='not valid JSON'
+	[no-inline]='inlineBody may not be false'
 )
 for name in "${!expect[@]}"; do
 	src="$here/fixtures/harnesses-invalid/$name.harness.json"

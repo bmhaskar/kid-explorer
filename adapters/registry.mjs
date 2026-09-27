@@ -169,6 +169,12 @@ export function validate(key, spec) {
 			errors.push(`contextFile "${spec.contextFile}" must be a bare file name ending in .md`);
 		}
 	}
+	// A host with no skill file never reaches for the detail later, so the rail
+	// would be all the model ever saw. That is not a matter of taste per entry,
+	// so it is enforced here rather than left to whoever writes the file.
+	if (spec.kind === "rules" && spec.inlineBody === false) {
+		errors.push("a rules-only host has nothing to load later, so the whole policy must be inlined; inlineBody may not be false");
+	}
 	if (spec.inlineBody !== undefined && typeof spec.inlineBody !== "boolean") {
 		errors.push("inlineBody must be true or false");
 	}

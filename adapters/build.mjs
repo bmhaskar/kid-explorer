@@ -19,7 +19,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join, dirname, relative } from "node:path";
 import { argv } from "node:process";
 
-import { loadRegistry, knownNames } from "./registry.mjs";
+import { loadRegistry, knownNames, validate } from "./registry.mjs";
 import {
 	MUST_SURVIVE, CORE_IN_SKILL, RAIL_MUST_HOLD, GUARD_RAIL,
 	GUARD_MARK_BEGIN, GUARD_MARK_END, BODY_MARK_BEGIN, BODY_MARK_END, NEVER_GRANT,
@@ -29,11 +29,17 @@ const root = new URL("..", import.meta.url).pathname;
 const SKILL_SRC = join(root, "SKILL.md");
 const REFS_SRC = join(root, "references");
 
+// Used when a rules host is declared on the command line without a
+// description. It states what the rule is, because a host will not surface a
+// rule whose purpose it cannot tell, and it never promises more than the rail
+// itself delivers.
+const DEFAULT_RULE_DESCRIPTION = "Child-safety guard rails for the kid-explorer conversations: no graphic detail, no harm instructions, no fear content; every feeling allowed; stop words always honoured.";
+
 // ---------------------------------------------------------------------------
 // argument handling
 
 function parseArgs(argvSlice) {
-	const opts = { harness: ["generic"], out: "build", scope: "project", dryRun: false, inPlace: false, mode: "build", overrides: {} };
+	const opts = { harness: ["generic"], out: "build", scope: "project", dryRun: false, inPlace: false, mode: "build", overrides: {}, rulesDescription: null, rulesAlwaysApply: null };
 	for (let i = 0; i < argvSlice.length; i++) {
 		const a = argvSlice[i];
 		const next = () => argvSlice[++i];
@@ -61,6 +67,11 @@ function parseArgs(argvSlice) {
 			case "--rules-dir": opts.overrides.rulesDir = next(); break;
 			case "--rules-ext": opts.overrides.rulesExt = next(); break;
 			case "--rules-name": opts.overrides.rulesName = next(); break;
+			case "--rules-description": opts.rulesDescription = next(); break;
+			case "--rules-globs": opts.overrides.rulesFrontmatterGlobs = next(); break;
+			case "--rules-always-apply": opts.rulesAlwaysApply = next(); break;
+			case "--project-dir": opts.overrides.projectDir = next(); break;
+			case "--home-dir": opts.overrides.homeDir = next(); break;
 			case "--context-file": opts.overrides.contextFile = next(); break;
 			case "--allow-tools": opts.overrides.allowedTools = String(next()).split(",").map((s) => s.trim()).filter(Boolean); break;
 			case "--deny-tools": opts.overrides.deniedTools = String(next()).split(",").map((s) => s.trim()).filter(Boolean); break;
@@ -406,17 +417,69 @@ function main() {
 	}
 
 	const wanted = opts.harness.includes("all") ? knownNames(registry) : opts.harness;
-	const unknown = wanted.filter((w) => !registry[w]);
+
+	// A name that is not in the registry is not yet an unknown name: the
+	// command line may have said enough about it to build it once. Consider
+	// the overrides before refusing, because the alternative is an error
+	// message that recommends options the program has already rejected.
+	const unknown = [];
+	for (const name of wanted) {
+		if (registry[name]) continue;
+		const candidate = { label: name, ...opts.overrides };
+		if (candidate.kind === "rules") {
+			// not a default but a consequence: such a host has no file to read later
+			candidate.inlineBody = true;
+		}
+		if (candidate.kind === "rules" || candidate.kind === "both") {
+			const always = opts.rulesAlwaysApply === null ? true
+				: /^(1|true|yes)$/i.test(String(opts.rulesAlwaysApply));
+			candidate.rulesFrontmatter = {
+				description: opts.rulesDescription ?? DEFAULT_RULE_DESCRIPTION,
+				globs: opts.overrides.rulesFrontmatterGlobs ?? "",
+				alwaysApply: always,
+			};
+			delete candidate.overrides;
+			delete candidate.rulesFrontmatterGlobs;
+			delete candidate.rulesDescription;
+			delete candidate.rulesFrontmatterGlobs;
+			delete candidate.rulesAlwaysApply;
+		}
+		if (candidate.kind === "skill" && candidate.projectDir === undefined) {
+			unknown.push({ name, why: ["a skill host needs --project-dir DIR, the directory the host scans for skills"] });
+			continue;
+		}
+		if (opts.overrides.kind === undefined) {
+			unknown.push({ name, why: ["no --kind was given, so there is nothing to build"] });
+			continue;
+		}
+		const v = validate(name, candidate);
+		if (v.errors.length) { unknown.push({ name, why: v.errors }); continue; }
+		registry[name] = candidate;
+		process.stdout.write(
+			`  ${name}: built from the command line, not from the registry\n` +
+			`    it will be gone when this finishes; keep it by writing\n` +
+			`    adapters/harnesses/${name}.harness.json\n`,
+		);
+	}
+
 	if (unknown.length) {
+		const detail = unknown.flatMap((u) => [
+			`  "${u.name}" is not in the registry, and the command line did not say enough:`,
+			...u.why.map((w) => `      ${w}`),
+		]);
 		process.stderr.write(
-			`\nkid-explorer: no harness named ${unknown.map((u) => `"${u}"`).join(", ")}.\n` +
-			`  Known: ${knownNames(registry).join(", ")}\n` +
+			`\nkid-explorer: cannot build ${unknown.map((u) => `"${u.name}"`).join(", ")}.\n` +
+			`${detail.join("\n")}\n` +
+				`  In the registry: ${knownNames(registry).join(", ")}\n` +
+				`  From the command line:\n` +
+				`    a rules host: --kind rules --rules-dir DIR --rules-ext EXT\n` +
+				`                  [--rules-name NAME] [--rules-description TEXT]\n` +
+				`                  [--rules-always-apply true|false] [--context-file FILE.md]\n` +
+				`    a skill host: --kind skill --project-dir DIR [--home-dir DIR]\n` +
+				`                  [--allow-tools a,b,c] [--deny-tools x,y]\n` +
 			`  To add one without patching this project, drop a file at\n` +
 			`      adapters/harnesses/<name>.harness.json\n` +
-			`  See adapters/harnesses/README.md for the contract, or pass the\n` +
-			`  fields on the command line to build it once:\n` +
-			`      --kind rules --rules-dir .<tool>/rules --rules-ext mdc \\\n` +
-			`      --context-file AGENTS.md --harness <name>\n\n`,
+			`  The contract for a written entry is in adapters/harnesses/README.md\n\n`,
 		);
 		return 4;
 	}

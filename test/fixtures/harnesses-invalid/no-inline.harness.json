@@ -1,0 +1,12 @@
+// must be refused: a rules-only host has no skill file to reach for later, so
+// the summary rail would be the whole of what the model ever sees. Eight lines
+// is not a policy, and this is not a matter of preference per entry.
+{
+	"label": "Bad rules host that turned the inlined policy off",
+	"kind": "rules",
+	"rulesDir": ".bad/rules",
+	"rulesExt": "mdc",
+	"rulesFrontmatter": { "description": "fine on its own", "alwaysApply": true },
+	"inlineBody": false,
+	"source": "written to be refused"
+}
