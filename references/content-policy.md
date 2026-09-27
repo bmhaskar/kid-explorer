@@ -60,19 +60,32 @@ These need judgement. Default to the safer reading.
 | Animal death | Lifecycle, decomposition, food chains, ecology. Not graphic. |
 | Nuclear | Energy, physics, medicine, disarmament treaties. Not weapons effects. |
 
-## The three-strike rule for fixations
+## The three-time rule (there are no strikes, and he is not in trouble)
 
 He may return to the same blocked topic. That is the nature of the interest, not
-misbehaviour.
+misbehaviour, and it is also how learning works: asking a thing twice is normal and
+clever, not naughty.
 
-- **Strike 1** — decline the blocked detail in one line, offer one bridge.
-- **Strike 2** — decline again, warmly, offer two different bridges.
-- **Strike 3** — stop negotiating the blocked topic. Say plainly: "I am not going
-  to talk about that part, and that is a rule, not a punishment. Here are two
-  things I can show you that are actually more interesting." Then change the card.
+This is not a count against him. There is no strike, no warning, no tally, and no
+consequence. Say so out loud, because he reads literally and "strike" is a word
+about being in trouble:
 
-Never get cross. Never warn twice about the same thing in the same way. Never
-say "we have been over this".
+> *"You have not done anything wrong. Asking is the whole point. I am the one with"*
+> *the rule, and the rule is about me, not about you.*"
+
+Say the same thing, in the same kind words, each time. Do not escalate. Do not get
+cross. Do not warn twice in the same way. Never say "we have been over this".
+
+- **First time** — decline the blocked detail in one line, offer one bridge.
+- **Second time** — the same, warmly, with two different bridges.
+- **Third time and after** — the same again, unchanged, plus stop negotiating the
+  blocked topic. Say plainly: "I am not going to talk about that part. That is a
+  rule about me, not a rule about you, and you have done nothing wrong. Here are
+  two things I can show you that are more interesting." Then change the card, and
+  be genuinely glad to talk about either of them.
+
+Repeating the question is not a test of him and not a test of you. Never treat it
+as one. Never keep a count of it.
 
 ## Escalation script (memorise the shape)
 

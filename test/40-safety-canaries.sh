@@ -32,7 +32,6 @@ done
 assert_has "$P" 'Escalation script'
 assert_has "$P" 'A grown-up you trust'
 assert_has "$P" 'Do not resume the game in that turn'
-assert_has "$P" 'The three-strike rule'
 
 # a child-facing skill must never offer to keep a secret from the parent
 for forbidden in "don't tell your parents" "keep it between us" "our secret" \
@@ -111,6 +110,108 @@ assert_ge "cards offered on the menu" \
 # --- the deck must cover all four interests he actually has ----------------
 for interest in 'History' 'Geography' 'Animals' 'Botany'; do
 	assert_matches "$T" "$interest"
+done
+
+# --- the space must be safe, not merely the content ---------------------
+# Content safety stops him seeing something awful. Emotional safety is what lets
+# him speak at all. A frightened child performs and complies and says nothing he
+# means, so these clauses are load-bearing and not decoration.
+E="$root/references/emotional-safety.md"
+assert_file "$E"
+assert_matches "$E" 'could he have said that here if he were afraid'
+
+for guarantee in 'You cannot be in trouble here' 'There is no wrong answer' \
+                 'Every feeling is allowed' 'Stop words always work' \
+                 'You may tell me I am wrong' 'You may say "I do not know' \
+                 'No time pressure' 'The door stays open'; do
+	assert_has "$E" "$guarantee"
+done
+
+# the guarantees must be stated to him, not merely held by the agent
+for guarantee in 'You cannot be in trouble here' 'There is no wrong answer' \
+                 'Every feeling is allowed' 'Stop words always work'; do
+	assert_has "$S" "$guarantee"
+done
+
+# a refusal of detail must never read as a refusal of him
+assert_has "$E" 'A refusal of detail is not a refusal of him'
+assert_has "$E" 'A boundary is not a punishment'
+assert_has "$E" 'repair it visibly'
+assert_has "$E" 'Never defend the error'
+
+# the parent line must not be able to become a report on the child
+for clause in 'never becomes a report on the child' 'could get him in trouble' \
+              'Write no line' 'his feelings, his family, his body' \
+              'Read it out' ; do
+	assert_has "$E" "$clause"
+done
+assert_has "$S" 'never a report on the child'
+assert_has "$S" 'write no line at all'
+
+# confidentiality must be answered honestly, in both directions
+assert_has "$E" 'Will you tell my mum'
+assert_has "$E" 'I will not lie to you about it'
+assert_has "$E" 'If you are not safe'
+# and the data rule must not read as a rule about his words
+assert_has "$S" 'No private data'
+assert_has "$S" 'This is about *data*, not about *his words*'
+assert_has "$S" 'we have no secrets here'
+
+# the count must not be able to become a mark
+assert_has "$S" 'The coin is not a mark'
+assert_has "$S" 'withheld, never taken away, never reset'
+assert_has "$S" 'no way to be at zero'
+assert_has "$S" "say 'no coins'"
+assert_has "$C" 'Keep the count, and never let it fall'
+assert_has "$C" 'There is no wrong answer to correct'
+assert_has "$C" 'Never compare'
+assert_has "$C" 'His interests are not currency here'
+
+# discipline framing must be gone from the boundary-holding
+assert_has "$P" 'The three-time rule'
+assert_has "$P" 'no strike, no warning, no tally, and no'
+assert_has "$P" 'You have not done anything wrong'
+assert_has "$P" 'the rule is about me, not about you'
+
+# coaching must never be allowed to humiliate
+assert_has "$Q" 'Never make him live the scene'
+assert_has "$Q" 'Never demand a confession or an apology'
+assert_has "$Q" 'He is not the defective part'
+assert_has "$Q" 'never as a judgement on how he did'
+
+# stop and repair must be first-class moves, not implications
+assert_has "$S" '| **stop** |'
+assert_has "$S" '| **repair** |'
+assert_has "$S" 'ask no follow-up question'
+
+# --- hazards must be NAMED and FORBIDDEN, not silently absent -----------------
+# A hazard that is merely absent from the text can be reintroduced by anyone
+# editing it. A hazard that is written down as forbidden cannot be reintroduced
+# without tripping the assertions just above. So these strings must appear, in
+# the prohibition tables, and must never appear as practice.
+for hazard in 'Let a streak break, reset, or be lost' \
+              'Award a coin only for a' \
+              'Say "no, that is wrong", flat' \
+              'Use his special interest as a reward or a withdrawal' \
+              'Correct him in the middle of something he is telling you about' \
+              'Never join a feeling to a correction with' \
+              'Compare him to other children' \
+              'Tell him a secret will be kept'; do
+	assert_has "$E" "$hazard"
+done
+
+# ...and the same hazards must not survive anywhere as live practice
+assert_lacks "$S" 'streak'
+assert_lacks "$S" 'something good'
+assert_lacks "$S" 'No secrets.'
+assert_lacks "$P" 'Strike 1'
+assert_lacks "$P" 'Strike 2'
+assert_lacks "$P" 'Strike 3'
+assert_lacks "$C" 'only for a real answer'
+assert_lacks "$C" 'streak counter'
+for f in "$S" "$P" "$C" "$Q" "$R" "$T" "$W" "$E"; do
+	assert_no_match "$f" 'if you (are good|behave|finish your)'
+	assert_no_match "$f" 'you should (know|apologise|say sorry)'
 done
 
 finish safety-canaries

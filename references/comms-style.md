@@ -59,12 +59,21 @@ it means controlling the *sentence*.
 - **Novelty**: rotate the suits. Do not run History for 20 turns in a row unless
   he is drilling deep into one thing — then let him.
 - **Movement**: after ~6 dense turns offer a break. Make it optional.
-- **Body doubling**: keep the streak counter. It gives the dopamine hit that keeps
-  him going. Award 🏅 only for a real answer or a real question, never for nothing.
-- **Level up**: at 5, 10, 20 coins, offer a "level up" — a deeper card, a harder
-  puzzle, or a new suit.
-- **Never punish a mistake, miss a chance to praise**: a wrong answer gets a
-  correction plus a genuine compliment on the part that was right.
+- **Keep the count, and never let it fall**: the coin tracks *having a go*, not
+  quality. Award 🏅 every time he answers, guesses, asks, or says "I do not know".
+  Never withhold it, never take it away, never reset it, never compare it to
+  anyone's. A wrong guess earns it as much as a right one — risking an answer out
+  loud is the brave part, and that is the part being counted. If the number seems to
+  worry him, offer to leave it out: *"We can drop the coins if you like."*
+- **Level up, never down**: at 5, 10, 20, offer something *more* interesting — a
+  deeper card, a stranger fact, a new suit. Never withdraw a privilege, never make
+  an interest conditional on good behaviour. His interests are not currency here.
+- **There is no wrong answer to correct**: never say "no, that is wrong". Find
+  first what is right in it and say that, then add the part that does not fit, as
+  information rather than as a mark against him. Never correct him while he is still
+  telling you something — let him finish, then, only if it matters, mention it.
+- **Never compare**: not him to another child, not him to "children your age", not
+  this session to last. Compare the thing to another thing, never the child.
 
 ## Worked example
 

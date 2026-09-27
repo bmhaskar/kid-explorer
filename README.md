@@ -16,7 +16,8 @@ pulls off the web.
 | **The lens** | Every answer passes seven checks before he sees it: age, violence, harm instructions, hate, fear, accuracy, privacy. Raw web results are never pasted. |
 | **Time Bridge** | He is drawn to wars and catastrophes. The skill does not ban them — it bridges them. *"A world war from 1914 to 1918"* → then the whole turn on penicillin, radar, the jet engine, insulin, blood banks, and what the world built afterwards. |
 | **Situation Corner** | Social-situation coaching. What happened, what each person felt, what the cues were, the exact words to say, one rule to keep. |
-| **Progress** | Curiosity coins and a streak counter, awarded only for a real answer or a real question. |
+| **The space is safe** | Before anything else, four things are said out loud: he cannot be in trouble here, there is no wrong answer, every feeling is allowed, and stop words always work. The agent can be told it is wrong, and must then concede in the open. Full rules in `references/emotional-safety.md`. |
+| **Curiosity coins** | A counter for the dopamine the task needs — of having a go, never of quality. It only ever goes up: it cannot be lost, reset, or run out, a wrong guess earns it as much as a right one, and he may ask for it to be left out. |
 
 ## Design notes for the autism + ADHD profile
 
@@ -110,6 +111,7 @@ Inside the chat he can also say: `start`, `menu`, `next`, `wild`, `more`,
 kid-explorer/
 ├── SKILL.md                           core rules, the game, the turn format
 ├── references/
+│   ├── emotional-safety.md             the eight guarantees, what breaks the space, confidentiality
 │   ├── content-policy.md              the age gate: allow list, deny list, escalation
 │   ├── reframing.md                   Time Bridge table — war & disaster → constructive
 │   ├── topic-bank.md                  the card deck, 60 cards across 4 suits
@@ -142,6 +144,12 @@ kid-explorer/
 - The agent can search the web. It is told to inspect every result before sharing
   and to never print a URL or a raw result list. Still: if you want to be certain,
   run pi with the web tools disabled and it will answer from the model alone.
+- The agent tells the child, plainly, what a grown-up can see, and never promises
+  secrecy it cannot keep. It will not quote anything he told it about his feelings,
+  family, body, school, or worries, and it writes no line at all rather than one that
+  could get him in trouble. This is deliberate: a child who thinks he is being
+  reported on will not speak. Your visibility of the *material* is preserved; the
+  conversation is not a channel for reporting on him.
 - Once per session the agent may add a line prefixed `📋 PARENT:` — a note for you
   about a fixation, a good question, or a topic it declined.
 - If he ever reports distress, the skill is written to stop the game and tell him
@@ -186,7 +194,7 @@ test/docker-test.sh --live     # plus the pi load smoke test
 | `10-structure` | Every file exists, every `references/…` link resolves, no orphans, the deck has its four suits and >= 40 cards, the bridge table is well formed, fences balance, no tabs, no CRLF. |
 | `20-frontmatter` | The frontmatter parses, the name is spec-legal and matches its directory, the description is within 1024 chars and actually routes, and the tool allowlist grants the web tools while withholding `bash`, `edit` and `write`. |
 | `30-content-lint` | No instructional-harm pattern anywhere in the shipped text, no URLs in child-facing files, no markup, no secrets, no shell. **And a meta-test: an injected canary must be caught, or the linter is declared dead.** |
-| `40-safety-canaries` | The guard rails are still bolted on: every hard rule, the escalation script, the "never promise secrecy" clause, the deny list, the seven checks, the bridge steps, the word budget, the one-question rule, the autism + ADHD contract. |
+| `40-safety-canaries` | The guard rails are still bolted on: every hard rule, the escalation script, the deny list, the seven checks, the bridge steps, the word budget, the one-question rule, the autism + ADHD contract, and the eight emotional-safety guarantees. Hazards are asserted twice over — once as *named and forbidden* in the prohibition tables, and once as *absent from practice* — so a removed guard cannot be quietly reintroduced. |
 | `50-extension-loads` | Loads the real `.ts` under a stub pi API and drives it: the gate stays shut by default, opens only for the documented values, `/quest` deals a menu, `/quest` refuses politely while busy, `/wild` works, `session_start` auto-deals and stays quiet mid-answer. |
 | `60-fresh-install` | Installs into a throwaway `PI_HOME`, byte-for-byte, from a clean checkout; `--skill` and `--no-ext`; bad options rejected; re-install is idempotent and keeps a backup; the real `~/.pi` is provably untouched; a package without `SKILL.md` is refused. |
 | `70-pi-live` | Optional. Starts pi for real with a bad API key. If the run reaches the provider, startup — including this skill and extension — completed cleanly. It also feeds the loader a deliberately malformed skill and requires a complaint, so the "no load-time error" assertions cannot pass vacuously. |
