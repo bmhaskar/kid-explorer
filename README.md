@@ -108,28 +108,28 @@ Inside the chat he can also say: `start`, `menu`, `next`, `wild`, `more`,
 
 ```
 kid-explorer/
-├── SKILL.md                              core rules, the game, the turn format
+├── SKILL.md                           core rules, the game, the turn format
 ├── references/
-│   ├── content-policy.md                 the age gate: allow list, deny list, escalation
-│   ├── reframing.md                      Time Bridge table — war & disaster → constructive
-│   ├── topic-bank.md                     the card deck, 60 cards across 4 suits
-│   ├── situation-corner.md               social-situation coaching + situation bank
-│   ├── comms-style.md                    autism + ADHD style guide, with worked example
-│   └── websearch-lens.md                 the seven checks before any web content is shared
+│   ├── content-policy.md              the age gate: allow list, deny list, escalation
+│   ├── reframing.md                   Time Bridge table — war & disaster → constructive
+│   ├── topic-bank.md                  the card deck, 60 cards across 4 suits
+│   ├── situation-corner.md            social-situation coaching + situation bank
+│   ├── comms-style.md                 autism + ADHD style guide, with worked example
+│   └── websearch-lens.md              the seven checks before any web content is shared
 ├── extensions/
-│   └── kid-explorer-autostart.ts         optional auto-menu + /quest and /wild
+│   └── kid-explorer-autostart.ts      optional auto-menu + /quest and /wild
 ├── test/
-│   ├── run-all.sh                        the suite runner
-│   ├── docker-test.sh                    build + run hermetically in a container
-│   ├── Dockerfile                        the test image (node base, unprivileged)
-│   ├── lib/assert.sh                     assertion helpers
-│   ├── harness/extension.harness.mjs     drives the real extension under a stub pi API
-│   ├── harness/legend.check.mjs          verifies the fixed symbol alphabet
-│   └── [1-7]0-*.sh                       the seven suites
-├── install.sh                            self-fetching installer
-├── .github/workflows/test.yml                ci: node 22/24/26, plus an offline container run
-├── Makefile                              make test | make docker | make dist
-└── LICENSE                               MIT, with a note for grown-ups
+│   ├── run-all.sh                     the suite runner
+│   ├── docker-test.sh                 build + run hermetically in a container
+│   ├── Dockerfile                     the test image (node base, unprivileged)
+│   ├── lib/assert.sh                  assertion helpers
+│   ├── harness/extension.harness.mjs  drives the real extension under a stub pi API
+│   ├── harness/legend.check.mjs       verifies the fixed symbol alphabet
+│   └── [1-7]0-*.sh                    the seven suites
+├── install.sh                         self-fetching installer
+├── .github/workflows/test.yml         ci: node 22/24/26, plus an offline container run
+├── Makefile                           make test | make docker | make dist
+└── LICENSE                            MIT, with a note for grown-ups
 ```
 
 ## Parent notes — please read
