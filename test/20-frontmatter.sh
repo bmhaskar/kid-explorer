@@ -21,6 +21,43 @@ else
 fi
 
 # --- parse top-level keys --------------------------------------------------
+# --- the block has to be a document, not merely a shape -------------------------
+#
+# Everything below this point asks whether named keys are present. That is not the
+# same question as whether the block will load, and the difference is not academic:
+# the description carried an unquoted ": " and no loader would take it, while every
+# key was present and every key was found. The suite was green on three node
+# versions and in a container, and the skill did not load on the one machine it was
+# installed on. pi said so in terms anyone could read — "Nested mappings are not
+# allowed in compact mappings at line 2, column 14" — and the suite had no way to
+# hear it, because a regular expression that looks for ^key: cannot see that the
+# value of a key is being read as a mapping of its own.
+#
+# So the artefact is now parsed before it is inspected, and a file that a loader
+# would refuse is refused here first.
+scratch="$(mktemp -d -t kidfm.XXXXXX)"
+	trap 'rm -rf -- "$scratch"' EXIT
+	if node "$here/harness/frontmatter.parser.check.mjs" >"$scratch/parser.log" 2>&1; then
+	kid_pass "the frontmatter parses, and the parser knows a bad file from a good one"
+else
+	kid_fail "the frontmatter would be refused by a loader"
+	sed -n '1,40p' "$scratch/parser.log" | sed 's/^/        /' >&2
+fi
+
+# every adapter the registry can build is generated from this file, so a fault here
+# is a fault there: the same bytes reach nine hosts
+for built in "$root"/adapters/harnesses/*.harness.json "$root"/test/fixtures/harnesses/*.harness.json; do
+	[[ -f "$built" ]] || continue
+		# read the file the way the registry reads it, rather than by hand. The
+	# registry strips // line comments before it parses, so a file carrying
+	# them is perfectly loadable there; a check that used a bare JSON.parse
+	# would report every such file as broken and teach nobody anything about
+	# the files. What is checked must be read as the thing that consumes it.
+	if ! FM_FILE="$built" node -e 'import {readFileSync} from "node:fs"; const strip=(t)=>t.replace(/^\s*\/\/.*$/gm,""); JSON.parse(strip(readFileSync(process.env.FM_FILE,"utf8")))' 2>/dev/null; then
+		kid_fail "$(basename -- "$built") is not readable as a harness spec"
+	fi
+done
+
 fm="$(awk 'NR==1{next} /^---$/{exit} {print}' "$skill")"
 get() { printf '%s\n' "$fm" | awk -v k="$1" 'BEGIN{p=0} /^[a-z0-9-]+:/{p=($0 ~ "^"k":")} p' | head -1 \
 	| sed -E 's/^[a-z0-9-]+:[[:space:]]*//; s/[[:space:]]+$//'; }
