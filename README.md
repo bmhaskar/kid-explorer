@@ -34,30 +34,51 @@ pulls off the web.
 
 ## Install
 
-### Option A — one line
+### One line, on the child's machine
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/bmhaskar/kid-explorer/main/install.sh | bash
 ```
 
-### Option B — clone and run
+The installer is self-fetching: run it from anywhere, even piped with no
+checkout present, and it pulls the upstream archive and installs from that.
+It verifies the package is complete before writing anything, refuses loudly
+if it is not, and leaves the previous install as a timestamped backup.
+
+### From a clone
 
 ```bash
 git clone https://github.com/bmhaskar/kid-explorer.git
 cd kid-explorer
-./install.sh
+./install.sh            # skill + the optional auto-menu extension
+./install.sh --skill    # skill only, no extension
 ```
 
-### Option C — copy by hand
-
-Copy the two directories into the child's pi configuration:
+### By hand
 
 ```
-~/.pi/agent/skills/kid-explorer/          ← the skill
-~/.pi/agent/extensions/kid-explorer-autostart.ts   ← optional, auto-deals the menu
+~/.pi/agent/skills/kid-explorer/                 the skill
+~/.pi/agent/extensions/kid-explorer-autostart.ts  optional, auto-deals the menu
 ```
 
 Then restart pi, or run `/reload` inside a running session.
+
+### Installer flags
+
+| Flag | Effect |
+|---|---|
+| `--skill`, `--no-ext` | Install the skill only, without the extension. |
+| `--from URL` | Install a specific archive tarball instead of the default upstream. |
+| `--repo OWNER/NAME` | Upstream to fetch from (default `bmhaskar/kid-explorer`). |
+| `--branch NAME` | Branch to fetch (default `main`). |
+| `--offline` | Never touch the network. If there is no local checkout, refuse. |
+| `--help` | Usage. Works even when the script was piped. |
+
+`PI_HOME` is honoured, so you can trial an install anywhere:
+
+```bash
+PI_HOME=/tmp/trial ./install.sh && find /tmp/trial -type f
+```
 
 ## Turn the auto-menu on
 
@@ -105,7 +126,8 @@ kid-explorer/
 │   ├── harness/extension.harness.mjs     drives the real extension under a stub pi API
 │   ├── harness/legend.check.mjs          verifies the fixed symbol alphabet
 │   └── [1-7]0-*.sh                       the seven suites
-├── install.sh                            installer (skill + optional extension)
+├── install.sh                            self-fetching installer
+├── .github/workflows/test.yml                ci: node 22/24/26, plus an offline container run
 ├── Makefile                              make test | make docker | make dist
 └── LICENSE                               MIT, with a note for grown-ups
 ```

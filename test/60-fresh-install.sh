@@ -89,23 +89,73 @@ PI_HOME="$scratch/home5" "$installer" >/dev/null 2>&1
 after="$(find "$HOME/.pi" -type f 2>/dev/null | sort | md5sum | cut -d' ' -f1)"
 assert_eq "installing left the real ~/.pi untouched" "$after" "$before"
 
-# --- 6. it must fail loudly on a broken package ----------------------------
-broken="$scratch/broken"
-mkdir -p "$broken"
-cp -- "$installer" "$broken/install.sh"          # no SKILL.md beside it
+# --- 6. a corrupt local package must be refused without reaching the net ---
+
+# A missing SKILL.md is no longer fatal: the installer fetches upstream instead.
+
+# What must never happen is a half-populated local package being installed, or a
+
+# fetch being attempted when the caller said --offline.
+
+broken="$scratch/broken"; mkdir -p "$broken"
+
+cp -- "$installer" "$broken/install.sh"
+
+mkdir -p "$broken/references"
+
+cp -- "$root/SKILL.md" "$broken/SKILL.md"          # SKILL.md present, references empty
+
 rc=0
-out="$(PI_HOME="$scratch/home6" "$broken/install.sh" 2>&1)" || rc=$?
+
+out="$(PI_HOME="$scratch/home6" "$broken/install.sh" --offline 2>&1)" || rc=$?
+
 if (( rc != 0 )); then
-	kid_pass "a package without SKILL.md is refused (exit $rc)"
+
+	kid_pass "a package with empty references is refused (exit $rc)"
+
 else
-	kid_fail "a package without SKILL.md was accepted"
+
+	kid_fail "a package with empty references was accepted"
+
 fi
-assert_has <(printf '%s\n' "$out") "SKILL.md not found"
+
+assert_has <(printf '%s\n' "$out") "is incomplete"
+
 if [[ -e "$scratch/home6/skills/kid-explorer/SKILL.md" ]]; then
-	kid_fail "it installed a broken package anyway"
+
+	kid_fail "it installed a half-populated package anyway"
+
 else
-	kid_pass "it installed nothing from a broken package"
+
+	kid_pass "it installed nothing from a half-populated package"
+
 fi
+
+
+
+# and a checkout with no SKILL.md at all must not phone home when told not to
+
+bare="$scratch/bare"; mkdir -p "$bare"
+
+cp -- "$installer" "$bare/install.sh"
+
+rc=0
+
+out="$(PI_HOME="$scratch/home6b" "$bare/install.sh" --offline 2>&1)" || rc=$?
+
+if (( rc != 0 )); then
+
+	kid_pass "--offline stops a bare checkout from silently fetching (exit $rc)"
+
+else
+
+	kid_fail "--offline was ignored and the network was used"
+
+fi
+
+assert_has <(printf '%s\n' "$out") "refusing to fetch"
+
+
 
 # --- 7. the extension must stay opt-in after install ------------------------
 assert_has "$h1/extensions/kid-explorer-autostart.ts" 'PI_KID_EXPLORER'
@@ -114,5 +164,61 @@ if grep -qE '^\s*if \(!enabled\(\)\) return' "$h1/extensions/kid-explorer-autost
 else
 	kid_fail "installed extension is not gated — it would fire on the parent's machine"
 fi
+
+# --- 8. self-fetch mode: the piped one-liner path -----------------------------
+# Run the installer from a directory that holds nothing, exactly as "curl | bash"
+# does, so the documented install line is exercised and not merely asserted.
+lonely="$scratch/lonely"; mkdir -p "$lonely"
+cp -- "$installer" "$lonely/install.sh"
+
+rc=0
+out="$(PI_HOME="$scratch/home8" HOME="$scratch/home8" bash -s -- --offline < "$lonely/install.sh" 2>&1)" || rc=$?
+assert_eq "with no checkout and --offline it refuses" "$rc" "3"
+assert_has <(printf "%s\n" "$out") "refusing to fetch"
+if [[ -e "$scratch/home8/skills/kid-explorer" ]]; then
+	kid_fail "it installed something while refusing to fetch"
+else
+	kid_pass "nothing was installed when the fetch was refused"
+fi
+
+rc=0
+out="$(PI_HOME="$scratch/home8b" bash -s -- --from https://github.com/bmhaskar/kid-explorer/archive/refs/heads/no-such-branch-xyz.tar.gz < "$lonely/install.sh" 2>&1)" || rc=$?
+if (( rc != 0 )); then
+	kid_pass "an unreachable --from source fails loudly (exit $rc)"
+else
+	kid_fail "an unreachable --from source was reported as success"
+fi
+
+# a tarball that is missing part of the package must be refused outright
+partial="$scratch/partial"; mkdir -p "$partial/kid-explorer/references"
+cp -- "$root/SKILL.md" "$partial/kid-explorer/SKILL.md"
+cp -- "$root/references/content-policy.md" "$partial/kid-explorer/references/"
+tar -C "$partial" -czf "$scratch/partial.tar.gz" kid-explorer
+rc=0
+out="$(PI_HOME="$scratch/home8c" bash -s -- --from "file://$scratch/partial.tar.gz" < "$lonely/install.sh" 2>&1)" || rc=$?
+if (( rc != 0 )); then
+	kid_pass "an incomplete package is refused (exit $rc)"
+else
+	kid_fail "an incomplete package was accepted"
+fi
+assert_has <(printf "%s\n" "$out") "is incomplete"
+assert_has <(printf "%s\n" "$out") "refusing to install"
+if [[ -e "$scratch/home8c/skills/kid-explorer/SKILL.md" ]]; then
+	kid_fail "a partial package was written into the config anyway"
+else
+	kid_pass "a partial package left the config untouched"
+fi
+
+# --help must work even when the script has no file on disk to read
+rc=0
+out="$(bash -s -- --help < "$lonely/install.sh" 2>&1)" || rc=$?
+assert_eq "--help works when piped" "$rc" "0"
+assert_has <(printf "%s\n" "$out") "Kid Explorer installer"
+assert_has <(printf "%s\n" "$out") "--offline"
+
+# the exit code must survive the cleanup trap in every branch
+rc=0
+PI_HOME="$scratch/home8d" "$installer" --nonsense >/dev/null 2>&1 || rc=$?
+assert_eq "an unknown option still exits 2 after the trap change" "$rc" "2"
 
 finish fresh-install

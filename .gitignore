@@ -4,3 +4,4 @@ tmp/
 *.old.*
 skills/kid-explorer.old.*/
 node_modules/
+.github/workflows/*.log

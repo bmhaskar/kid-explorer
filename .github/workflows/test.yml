@@ -1,0 +1,42 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    name: hermetic suite (node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.6', '24', '26']
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: suites
+        run: ./test/run-all.sh
+
+      # --strict is for a workstation that has pi installed, where the
+      # optional live suite can actually run. In CI there is no pi binary, so that
+      # suite reports a skip, which is honest and not a failure.
+
+  container:
+    name: hermetic suite in a container, offline
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build and run with --network none
+        run: ./test/docker-test.sh --per-suite --repeat 2
