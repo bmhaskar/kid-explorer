@@ -28,6 +28,18 @@ jobs:
       - name: suites
         run: ./test/run-all.sh
 
+      # The suite must not lean on anything a developer happens to have in ~/.pi.
+      # This step is what catches that class of bug: a clean machine has no ~/.pi at
+      # all, and a find on a missing path used to abort the whole run under pipefail.
+      - name: suites, from a pristine HOME
+        env:
+          HOME: ${{ runner.temp }}/ci-home
+        run: |-
+          rm -rf "$HOME"
+          mkdir -p "$HOME"
+          test ! -d "$HOME/.pi" || { echo "expected no ~/.pi in a pristine home" >&2; exit 1; }
+          ./test/run-all.sh
+
       # --strict is for a workstation that has pi installed, where the
       # optional live suite can actually run. In CI there is no pi binary, so that
       # suite reports a skip, which is honest and not a failure.

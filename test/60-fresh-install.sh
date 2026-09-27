@@ -84,10 +84,32 @@ else
 fi
 
 # --- 5. it must not reach outside PI_HOME -----------------------------------
-before="$(find "$HOME/.pi" -type f 2>/dev/null | sort | md5sum | cut -d' ' -f1)"
+# A machine that has never run pi has no ~/.pi at all. find then exits non-zero,
+# and under set -o pipefail that failure travels out of the pipeline and into the
+# assignment, where set -e kills the whole suite. Absence is a real state, so it
+# has to be a value of its own rather than an error.
+home_pi_digest() {
+	local d="$HOME/.pi"
+	if [[ ! -d "$d" ]]; then
+		printf 'absent\n'
+		return 0
+	fi
+	local out
+	if out="$(find "$d" -type f 2>/dev/null | sort | md5sum | cut -d' ' -f1)"; then
+		printf '%s\n' "${out:-empty}"
+	else
+		printf 'unreadable\n'
+	fi
+	return 0
+}
+
+before="$(home_pi_digest)"
 PI_HOME="$scratch/home5" "$installer" >/dev/null 2>&1
-after="$(find "$HOME/.pi" -type f 2>/dev/null | sort | md5sum | cut -d' ' -f1)"
+after="$(home_pi_digest)"
 assert_eq "installing left the real ~/.pi untouched" "$after" "$before"
+if [[ "$before" == "absent" ]]; then
+	kid_pass "the child machine had no ~/.pi before, and still has none"
+fi
 
 # --- 6. a corrupt local package must be refused without reaching the net ---
 
