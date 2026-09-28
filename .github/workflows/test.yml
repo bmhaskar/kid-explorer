@@ -41,8 +41,9 @@ jobs:
           ./test/run-all.sh
 
       # --strict is for a workstation that has pi installed, where the
-      # optional live suite can actually run. In CI there is no pi binary, so that
-      # suite reports a skip, which is honest and not a failure.
+      # optional live suite can actually run. In CI there is no pi binary on the
+      # matrix jobs, so those two report a skip there, which is honest and not a
+      # failure; the container job builds one and runs them for real.
 
   container:
     name: hermetic suite in a container, offline
@@ -52,6 +53,22 @@ jobs:
 
       - name: build and run with --network none
         run: ./test/docker-test.sh --per-suite --repeat 2
+
+      # the live stage, which is the base image plus pi, so that the two suites
+      # that need a pi binary are not left to report a skip in CI forever. They
+      # are the only two that can say anything about whether the skill arrives,
+      # and the one that matters is the one that found the frontmatter fault:
+      # 70-pi-live asks only that nothing raised, which a dropped skill does not
+      # do, and it stayed green across that whole fault. 71-skill-loads asks
+      # whether the skill is in the prompt the model would have been sent, and
+      # carries a broken twin to prove it can tell the two apart.
+      #
+      # still --network none, and still offline: the prompt is assembled before
+      # any request leaves, and both suites run against a deliberately bad key,
+      # so reaching the provider boundary is the pass condition rather than an
+      # act of reaching it.
+      - name: and the two that need a pi binary
+        run: ./test/docker-test.sh --live
 
   # The host suite proves what the generator emits. This proves what the
   # installer leaves on a machine, in the directories each host actually
