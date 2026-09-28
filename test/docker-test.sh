@@ -118,7 +118,12 @@ done
 if (( live )); then
 	build live "$live_image"
 	printf '\n▸ live smoke test (pi loads the skill and the extension)\n'
-	if run_offline "$live_image" /app/test/run-all.sh --only 70-pi-live; then
+	# both, not one. 70-pi-live asks only that pi raised nothing, which is the
+	# wrong question: a frontmatter no parser will accept raises nothing and is
+	# dropped in silence, and that suite stayed green through the whole of it.
+	# 71-skill-loads asks instead whether the skill arrived, by reading the prompt
+	# pi would have sent, and it carries a broken twin to prove it can tell.
+	if run_offline "$live_image" /app/test/run-all.sh --only "pi-live,skill-loads"; then
 		printf '  └─ live load ok\n'
 	else
 		printf '  └─ live load FAILED\n'

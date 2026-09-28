@@ -53,7 +53,19 @@ t_all=$(date +%s%N)
 
 for s in "${suites[@]}"; do
 	name="$(basename -- "$s" .sh)"
-	if [[ -n "$only" && "$name" != *"$only"* ]]; then continue; fi
+	# a comma separates alternatives, so that one invocation can name more than one
+	# suite. Plain substring matching cannot, however useful it otherwise is, select
+	# a pair of suites whose names share nothing; "--only pi-live,skill-loads" asks
+	# for both, and each field is matched exactly as the whole string used to be, so
+	# nothing that passed before this change stops passing because of it.
+	if [[ -n "$only" ]]; then
+		matched=0
+		IFS=, read -ra alts <<<"$only" || true
+		for a in "${alts[@]}"; do
+			[[ -n "$a" && "$name" == *"$a"* ]] && { matched=1; break; }
+		done
+		(( matched )) || continue
+	fi
 
 	ran=$((ran + 1))
 	t0=$(date +%s%N)

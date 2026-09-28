@@ -248,7 +248,7 @@ kid-explorer/
 │   ├── fixtures/harnesses/           an example of a host added from outside
 │   ├── fixtures/harnesses-invalid/   specs written to be refused, one per rule
 │   ├── harness/docs.claims.check.mjs checks the claims this file makes
-│   └── [1-9]0-*.sh                   the nine suites
+│   └── [1-9]0-*.sh                   the ten suites
 ├── install.sh                        self-fetching installer
 ├── .github/workflows/test.yml        ci: node 22/24/26, an offline container run,
 │                                     and an install per host, one container each
@@ -298,7 +298,7 @@ editing.
 
 ## Testing
 
-The repo ships a test suite of nine suites. It is hermetic: no network, no model call, no
+The repo ships a test suite of ten suites. It is hermetic: no network, no model call, no
 credentials, no host state. `node` must be new enough to strip TypeScript
 types natively (>= 22.6).
 
@@ -334,7 +334,8 @@ test/docker-harness.sh --list  # which hosts that would cover
 | `40-safety-canaries` | The guard rails are still bolted on: every hard rule, the escalation script, the deny list, the seven checks, the bridge steps, the word budget, the one-question rule, the autism + ADHD contract, and the eight emotional-safety guarantees. Hazards are asserted twice over — once as *named and forbidden* in the prohibition tables, and once as *absent from practice* — so a removed guard cannot be quietly reintroduced. |
 | `50-extension-loads` | Loads the real `.ts` under a stub pi API and drives it: the gate stays shut by default, opens only for the documented values, `/quest` deals a menu, `/quest` refuses politely while busy, `/wild` works, `session_start` auto-deals and stays quiet mid-answer. |
 | `60-fresh-install` | Installs into a throwaway `PI_HOME`, byte-for-byte, from a clean checkout; `--skill` and `--no-ext`; bad options rejected; re-install is idempotent and keeps a backup; the real `~/.pi` is provably untouched; a package without `SKILL.md` is refused. |
-| `70-pi-live` | Optional. Starts pi for real with a bad API key. If the run reaches the provider, startup — including this skill and extension — completed cleanly. It also feeds the loader a deliberately malformed skill and requires a complaint, so the "no load-time error" assertions cannot pass vacuously. |
+| `70-pi-live` | Optional. Starts pi for real with a bad API key. If the run reaches the provider, nothing on the way in crashed. Read that claim narrowly, because it is narrower than it looks: a frontmatter no parser will accept does not crash, it is dropped, and pi drops it without a word. This suite was green on a skill that did not load. It remains worth running — it is the only thing that notices an extension that throws — but it is not proof of a load, and `71-skill-loads` is. |
+| `71-skill-loads` | **Does the skill reach the model?** Asks pi, in its machine-readable mode, for the prompt it would have sent, and requires that this skill's name and description are in it — which is what pi's own documentation promises it puts there for every skill that loaded. Then it builds the twin that shipped, the one whose frontmatter no parser accepts, and requires that the twin is absent and that the two runs differ. Without that control the assertion above is a search for any text like ours: the first version of this probe was satisfied four times over by the working directory. |
 | `80-portability` | Every host in the registry: it builds, it lands where the registry promises, its frontmatter stays inside the specification, it is granted no forbidden tool, the clauses survive in the artefact that is supposed to carry them, a second build is byte-identical, blocks neither duplicate nor nest, a host added from outside is accepted, six bad specs are each refused for the right reason, **and two meta-tests confirm the checks can still fail** — one by deleting a safety clause, one by hand-editing a body. |
 | `90-docs` | Everything this file asserts about the program: the flags, the `make` targets, the layout tree, the suite table, the examples. It is the reason the paragraph above can be trusted a month from now. |
 
@@ -371,7 +372,7 @@ text against each host's documented conventions.
 
 ## Behavioural evaluation
 
-The nine suites above say nothing about whether a model obeys the policy, because none of
+The ten suites above say nothing about whether a model obeys the policy, because none of
 them asks a model anything. They are joined by a tenth, opt-in harness that does. It is
 separate on purpose: it needs a model, so it cannot run in the offline container, and a test
 that quietly needs the internet is a test that fails on somebody's laptop.
