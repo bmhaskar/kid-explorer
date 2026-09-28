@@ -1,95 +1,105 @@
 // Fault injection for the documentation checker.
 //
 // A checker that cannot fail is worth less than no checker, because it is
-// believed. Every claim this suite makes is therefore put to a case where it
-// must be seen to be false, and the fault is asserted to have landed before the
-// checker is consulted about it — the last attempt at this produced a confident
-// verdict that the checker was vacuous, which was false, and the fault had not
-// been written at all.
-import { readFileSync, writeFileSync, copyFileSync, mkdirSync, rmSync } from "node:fs";
+// believed. Every claim the docs suite makes is therefore put to a case in
+// which it must be seen to be false.
+//
+// Two things are asserted before any verdict is recorded, and both were learned
+// the hard way. The first attempt at this file reported that the checker was
+// decorative, and that report was false: the faults had not been planted,
+// because the needles were text I had invented rather than text I had read out
+// of the README. So each needle is checked to exist before it is replaced, and
+// each replacement is read back from disk rather than trusted from what we
+// meant to write. A fault that was never planted detects nothing, and a suite
+// that reports on it tells you about your own test rather than about your code.
+import { readFileSync, writeFileSync, copyFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
 
 const SRC = "README.md";
-const BACK = "/tmp/README.injected.backup";
+const BACK = "/tmp/README.faultcheck.backup";
 copyFileSync(SRC, BACK);
 
-let failures = 0;
 const results = [];
+let undetected = 0;
 
 function restore() { copyFileSync(BACK, SRC); }
 
-function inject(find, replace) {
+function plant(find, replace) {
 	const s = readFileSync(SRC, "utf8");
-	if (!s.includes(find)) throw new Error(`the fault could not be planted: ${JSON.stringify(find).slice(0, 60)} is not in the README`);
+	if (!s.includes(find)) throw new Error(`the needle is not in the README: ${JSON.stringify(find).slice(0, 70)}`);
 	const after = s.replace(find, () => replace);
-	if (!after.includes(replace)) throw new Error("the fault was planted and then not: it is not in the file afterwards");
 	writeFileSync(SRC, after);
-	// and not merely planted: read it back from disk, not from what we meant to write
-	if (!readFileSync(SRC, "utf8").includes(replace)) throw new Error("the file on disk does not hold the fault");
+	// read it back from disk: what we meant to write is not evidence that we wrote it
+	if (!readFileSync(SRC, "utf8").includes(replace)) throw new Error("the fault was not on disk after writing");
 }
 
-function runChecker() {
+function verdict() {
 	try {
-		const out = execSync("node test/harness/docs.claims.check.mjs", { encoding: "utf8", cwd: process.cwd() });
-		return { ok: true, out };
+		const out = execSync("node test/harness/docs.claims.check.mjs", { encoding: "utf8" });
+		return { refused: false, out };
 	} catch (e) {
-		return { ok: false, out: `${e.stdout ?? ""}${e.stderr ?? ""}` };
+		return { refused: true, out: `${e.stdout ?? ""}${e.stderr ?? ""}` };
 	}
 }
 
-function must(name, find, replace, expectToBeNamed) {
+function test(name, find, replace, expectNamed) {
 	try {
-		inject(find, replace);
+		plant(find, replace);
 	} catch (e) {
-		results.push(["SKIP", name, e.message]);
-		failures++;
+		// an unplanted fault is a fault in this file, and saying so is the whole
+		// point: reporting it as "the checker missed it" would convict an innocent
+		// checker of a crime the harness committed
+		results.push(["HARNESS", name, e.message]);
+		undetected++;
 		restore();
 		return;
 	}
-	const r = runChecker();
+	const v = verdict();
 	restore();
-	if (r.ok) {
-		results.push(["BAD ", name, "the checker passed a document it should have refused"]);
-		failures++;
-	} else if (expectToBeNamed && !r.out.includes(expectToBeNamed)) {
-		results.push(["BAD ", name, `refused, but not for the reason claimed; looked for ${JSON.stringify(expectToBeNamed)}`]);
-		failures++;
+	if (!v.refused) {
+		results.push(["MISSED", name, "the checker passed a document it should have refused"]);
+		undetected++;
+	} else if (expectNamed && !v.out.includes(expectNamed)) {
+		results.push(["WRONG ", name, `refused, but not for the stated reason; looked for ${JSON.stringify(expectNamed)}`]);
+		undetected++;
 	} else {
-		results.push(["good", name, "refused, for the reason on the plaque"]);
+		results.push(["caught", name, "refused, for the reason on the plaque"]);
 	}
 }
 
-// each of these is a claim the README makes, broken in a way a reader would act on
-must(
+// each needle below was read out of the README before it was used
+test(
 	"a make target that does not exist",
-	"make evals-judge",
-	"make evals-judge\nmake frobnicate-the-widget",
+	"make evals              # asks the model the probes",
+	"make evals              # asks the model the probes\nmake frobnicate-the-widget",
 	"frobnicate-the-widget",
 );
-must(
-	"a suite that is not on disk",
+test(
+	"a suite listed that is not on disk",
 	"| `90-docs` |",
-	"| `90-docs` |\n| `99-phantom` |",
+	"| `90-docs` |\n| `99-phantom-suite` |",
 	null,
 );
-must(
+test(
 	"a flag the installer does not accept",
-	"  --harness NAME",
-	"  --harness NAME\n  --frobnicate-the-widget",
+	"| `--list-harnesses` |",
+	"| `--frobnicate-the-widget` | A flag that was never implemented. |\n| `--list-harnesses` |",
 	null,
 );
-must(
+test(
 	"a path in the layout tree that leads nowhere",
 	"test/evals.sh",
-	"test/evals.sh\n│   ├── test/evals.sh\n│   │   └── phantom-file-that-was-never-written.sh",
+	"test/evals.sh\n│   ├── phantom-file-that-was-never-written.sh",
 	null,
 );
 
 process.stdout.write("\n  the documentation checker, put to its own faults\n\n");
-for (const [verdict, name, note] of results) {
-	process.stdout.write(`  ${verdict === "good" ? "ok  " : "FAIL"}  ${name.padEnd(38)} ${note}\n`);
+for (const [v, name, note] of results) {
+	process.stdout.write(`  ${v === "caught" ? "ok    " : "FAIL  "} ${name.padEnd(38)} ${v === "caught" ? "" : `[${v}] `}${note}\n`);
 }
-process.stdout.write(`\n  ${failures ? `${failures} of ${results.length} faults went undetected — the checker is decorative` : `all ${results.length} faults were detected, each for its stated reason`}\n`);
+process.stdout.write(`\n  ${undetected
+	? `${undetected} of ${results.length} did not go as they should — read the tags before believing the checker`
+	: `all ${results.length} faults were caught, each for its stated reason`}\n`);
 
 restore();
-process.exitCode = failures ? 1 : 0;
+process.exitCode = undetected ? 1 : 0;

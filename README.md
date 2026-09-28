@@ -102,6 +102,12 @@ otherwise.
 | `--rules-always-apply true\|false` | default `true` |
 | `--project-dir DIR` `--home-dir DIR` | where the skill tree goes, for a skill host |
 | `--allow-tools a,b` `--deny-tools x,y` | the tool surface, in that host's names |
+| `--label TEXT` | how the host is named in the output |
+| `--list` | the hosts this build knows, and which half each can read |
+| `--out DIR` | where to write, default `build` |
+| `--scope project\|home\|both` | which copy to emit, default `project` |
+| `--dry-run` | print what would be written and write nothing |
+| `--verify NAME\|all` | re-check what is in `--out` against what the registry promises, and say where they differ |
 | `--context-file FILE.md` | the always-on rules file, or none |
 | `--scope project\|home\|both` | which half to emit |
 | `--in-place` | write into the real tree so hosts sharing a context file merge |
@@ -125,7 +131,7 @@ Then restart pi, or run `/reload` inside a running session.
 
 | Flag | Effect |
 |---|---|
-| `--skill`, `--no-ext` | Install the skill only, without the extension. |
+| `--skill`, `--no-ext`, `--without-extension` | Install the skill only, without the extension. All three spellings are accepted. |
 | `--harness NAME` | Install for one host: `pi`, `claude`, `codex`, `gemini`, `opencode`, `devin`, `cursor`, `generic`, or a name you added. |
 | `--all-harnesses` | Install for every host the registry knows. |
 | `--project DIR` | Where the project copy goes. Default `$PWD`. |

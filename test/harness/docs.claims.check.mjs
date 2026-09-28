@@ -1,5 +1,6 @@
 // A documentation claim is a claim. Checked, not eyeballed.
 import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { checkFlags } from "./docs.flags.check.mjs";
 
 const readme = readFileSync("README.md", "utf8");
 const makefile = readFileSync("Makefile", "utf8");
@@ -66,5 +67,12 @@ const noUrls = blocks.replace(/[A-Za-z0-9.+-]+:\/\/[^\s)'"]+/g, "");
 const scripts = [...new Set([...noUrls.matchAll(/(?:^|\s|\/)([a-z0-9./-]+\.(?:sh|mjs))/g)].map((m) => m[1]))];
 const missingScripts = scripts.filter((s) => !existsSync(s) && !existsSync(s.replace(/^\.?\//, "")));
 say(!missingScripts.length, `every script invoked in an example exists${missingScripts.length ? ": " + missingScripts.join(", ") : ""} (${scripts.length} named)`);
+
+// 6. flags, both ways round. The suite header has claimed this check since it
+// was written and the check was never written; it was found missing by fault
+// injection, which is the only reliable way to find a check that is described
+// and not implemented, because such a check is indistinguishable from a real one
+// until the day it is needed.
+await checkFlags(readme, say);
 
 process.exitCode = bad ? 1 : 0;

@@ -52,4 +52,31 @@ else
 	done < "$scratch/claims.log"
 fi
 
+# --- the checkers, put to their own faults --------------------------------------
+#
+# Everything above asks whether the README agrees with the repository. These ask
+# the prior question, which is whether the thing that asks has any way of saying
+# no. A checker that cannot fail is worth less than no checker, because it is
+# believed. Three of the checks in the file above were found to be missing or
+# vacuous only by planting a fault and watching whether it was noticed, and one
+# of them had been described in this file's own header for its whole life without
+# ever having been written.
+#
+# They run here rather than only by hand for the reason the rest of the suite
+# runs: a meta-test nobody runs rots silently, and its silence looks exactly like
+# its success.
+
+if node "$here/harness/docs.claims.faultcheck.mjs" >"$scratch/docs.claims.faultcheck.mjs.log" 2>&1; then
+	kid_pass "the documentation checker catches every fault planted in it"
+else
+	kid_fail "the documentation checker let a planted fault through, or could not plant one"
+	sed -n '1,20p' "$scratch/docs.claims.faultcheck.mjs.log" | sed 's/^/      /' >&2
+fi
+if node "$here/harness/docs.flags.faultcheck.mjs" >"$scratch/docs.flags.faultcheck.mjs.log" 2>&1; then
+	kid_pass "the flag scoping catches every fault planted in it"
+else
+	kid_fail "the flag scoping let a planted fault through, or could not plant one"
+	sed -n '1,20p' "$scratch/docs.flags.faultcheck.mjs.log" | sed 's/^/      /' >&2
+fi
+
 finish
