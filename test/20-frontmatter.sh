@@ -48,12 +48,16 @@ fi
 # is a fault there: the same bytes reach nine hosts
 for built in "$root"/adapters/harnesses/*.harness.json "$root"/test/fixtures/harnesses/*.harness.json; do
 	[[ -f "$built" ]] || continue
-		# read the file the way the registry reads it, rather than by hand. The
-	# registry strips // line comments before it parses, so a file carrying
-	# them is perfectly loadable there; a check that used a bare JSON.parse
-	# would report every such file as broken and teach nobody anything about
-	# the files. What is checked must be read as the thing that consumes it.
-	if ! FM_FILE="$built" node -e 'import {readFileSync} from "node:fs"; const strip=(t)=>t.replace(/^\s*\/\/.*$/gm,""); JSON.parse(strip(readFileSync(process.env.FM_FILE,"utf8")))' 2>/dev/null; then
+		# read the file the way the registry reads it, in a file rather than in a
+	# -e one-liner. The one-liner was the single reason the node 22.6 job had
+	# ever gone red: a static import at the top of a -e script is refused
+	# outside a module, so the probe died with a syntax error having read
+	# nothing at all, and a perfectly good fixture beside it was reported as
+	# broken. The file was fine; the checker was. Dynamic import is a call
+	# rather than a statement, so it is legal in either kind of script and in
+	# either release, which is what the suite's own capability probe already
+	# did, for exactly this reason.
+	if ! KID_SPEC_FILE="$built" node "$here/harness/spec.read.check.mjs" 2>/dev/null; then
 		kid_fail "$(basename -- "$built") is not readable as a harness spec"
 	fi
 done
